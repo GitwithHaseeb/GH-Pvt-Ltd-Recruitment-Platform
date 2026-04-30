@@ -15,6 +15,7 @@ A complete software house website plus an intelligent recruitment pipeline with 
 - [Project Structure](#project-structure)
 - [Quick Start (Local)](#quick-start-local)
 - [Free Cloud Deployment (Student Path)](#free-cloud-deployment-student-path)
+- [Live Deployment (What We Used)](#live-deployment-what-we-used)
 - [Environment Variables](#environment-variables)
 - [Gmail API Configuration (Email Import)](#gmail-api-configuration-email-import)
 - [Admin Dashboard](#admin-dashboard)
@@ -172,6 +173,48 @@ It covers:
 - GitHub → Neon Postgres → Upstash Redis → Render (FastAPI) → Vercel (Next.js)
 - Common build failures (Python version pinning, dependency issues)
 - Vercel monorepo root directory pitfalls (`frontend/`)
+
+---
+
+## Live Deployment (What We Used)
+
+### Live website (frontend)
+
+- **Vercel (Hobby / free)**: [https://gh-pvt-ltd-recruitment-platform.vercel.app/](https://gh-pvt-ltd-recruitment-platform.vercel.app/)
+
+This hosts the **Next.js** marketing site + apply/admin UI.
+
+### Live API (backend)
+
+- **Render (Web Service / free tier)**: `https://gh-backend-of1e.onrender.com`
+
+This hosts the **FastAPI** API + recruitment endpoints.
+
+Quick checks:
+
+- Health: `https://gh-backend-of1e.onrender.com/health`
+- Open roles: `https://gh-backend-of1e.onrender.com/api/positions`
+
+### Platforms we used (and what each one does)
+
+- **GitHub**: source control + automatic deploy hooks for Render/Vercel
+- **Neon**: managed **PostgreSQL** database (`DATABASE_URL`)
+- **Upstash**: managed **Redis** (`REDIS_URL` + Celery broker/result URLs)
+- **Render**: hosts the **Python backend** (install deps, run `uvicorn`)
+- **Vercel**: hosts the **Next.js frontend** and CDN-style delivery
+
+### Frontend ↔ backend wiring
+
+On Vercel, set:
+
+- `NEXT_PUBLIC_API_BASE=https://gh-backend-of1e.onrender.com`
+
+That value is what the browser uses to call the backend from the deployed website.
+
+### Important free-tier notes (real world)
+
+- **Render cold starts** on free web services can add ~30–90s latency after idle.
+- **Render Background Workers** may be **paid** on some accounts/plans. For student demos, we added a **synchronous fallback** for `/api/run-pipeline` when workers are unavailable (tradeoff: long-running requests).
 
 ---
 
