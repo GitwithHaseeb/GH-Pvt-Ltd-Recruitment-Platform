@@ -38,19 +38,16 @@ def admin_auth(credentials: HTTPBasicCredentials = Depends(security)) -> str:
 
 @router.post("/run-pipeline", response_model=RunPipelineResponse, dependencies=[Depends(admin_auth)])
 def run_pipeline():
+    # Free-tier fallback: if Redis/Celery is unavailable, execute pipeline synchronously.
     if not _is_redis_reachable(settings.redis_url):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Pipeline worker is unavailable. Start Redis/Celery for recruitment pipeline execution.",
-        )
+        mapping = run_recruitment_pipeline_task()
+        return RunPipelineResponse(message="Pipeline executed synchronously (no worker).", selected_mapping=mapping or {})
     try:
         async_result = run_recruitment_pipeline_task.delay()
         return RunPipelineResponse(message="Pipeline triggered.", selected_mapping={"task_id": async_result.id})
     except Exception:  # noqa: BLE001
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Pipeline worker is unavailable. Start Redis/Celery for recruitment pipeline execution.",
-        )
+        mapping = run_recruitment_pipeline_task()
+        return RunPipelineResponse(message="Pipeline executed synchronously (worker fallback).", selected_mapping=mapping or {})
 
 
 @router.get("/admin/metrics", response_model=MetricsResponse, dependencies=[Depends(admin_auth)])
